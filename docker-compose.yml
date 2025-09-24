@@ -1,0 +1,156 @@
+services:
+  wordpress:
+    container_name: wordpress
+    image: anideaforbusiness/wordpress-ols-super-optimized-eg:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        WORDPRESS_VERSION: ${WORDPRESS_VERSION}
+        RELAY_VERSION: ${RELAY_VERSION}
+        OPENLITESPEED_VERSION: ${OPENLITESPEED_VERSION}
+        PHP_VERSION: ${PHP_VERSION}
+        RELAY_PHP_VERSION: ${RELAY_PHP_VERSION}
+        PLATFORM: ${PLATFORM}
+        RELAY_MAX_MEMORY: ${RELAY_MAX_MEMORY}
+        RELAY_EVICTION_POLICY: ${RELAY_EVICTION_POLICY}
+        RELAY_ENVIRONMENT: ${RELAY_ENVIRONMENT}
+        RELAY_KEY: ${RELAY_KEY}
+        RELAY_DATABASES: ${RELAY_DATABASES}
+        RELAY_MAX_ENDPOINT_DBS: ${RELAY_MAX_ENDPOINT_DBS}
+        RELAY_INITIAL_READERS: ${RELAY_INITIAL_READERS}
+        RELAY_MAXMEMORY_PCT: ${RELAY_MAXMEMORY_PCT}
+        RELAY_LOGLEVEL: ${RELAY_LOGLEVEL}
+    environment:
+      - PHP_VERSION=${PHP_VERSION}
+      - WORDPRESS_DB_HOST=${WORDPRESS_DB_HOST}
+      - WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
+      - WORDPRESS_DB_PASSWORD=${WORDPRESS_DB_PASSWORD}
+      - WORDPRESS_DB_NAME=${WORDPRESS_DB_NAME}
+      - WORDPRESS_TABLE_PREFIX=${WORDPRESS_TABLE_PREFIX}
+      - WORDPRESS_DEBUG=${WORDPRESS_DEBUG}
+      - SITE_URL=${SITE_URL}
+      - SITE_TITLE=${SITE_TITLE}
+      - ADMIN_USER=${ADMIN_USER}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ENABLE_MODSECURITY=${ENABLE_MODSECURITY}
+      - ENABLE_RATE_LIMITING=${ENABLE_RATE_LIMITING}
+      - ENABLE_IP_ACCESS_CONTROL=${ENABLE_IP_ACCESS_CONTROL}
+      - ALLOWED_ADMIN_IPS=${ALLOWED_ADMIN_IPS}
+      - WP_ADMIN_RATE_LIMIT=${WP_ADMIN_RATE_LIMIT}
+      - WP_GENERAL_RATE_LIMIT=${WP_GENERAL_RATE_LIMIT}
+      - WP_MEMORY_LIMIT=${WP_MEMORY_LIMIT}
+      - WP_MAX_MEMORY_LIMIT=${WP_MAX_MEMORY_LIMIT}
+    volumes:
+      - wordpress_data:/var/www/vhosts/localhost/html
+      - ./config/vhosts:/usr/local/lsws/conf/vhosts/
+      - ./config/php/php.ini:/usr/local/lsws/lsphp${PHP_VERSION}/etc/php/8.2/litespeed/php.ini:ro
+      - ./scripts:/var/www/scripts:ro
+      - php_extensions:/usr/local/lsws/lsphp${PHP_VERSION}/lib/php
+      - wordpress_logs:/var/log/wordpress
+    ports:
+      - "${HTTP_PORT}:80"
+      - "${HTTPS_PORT}:443"
+      - "7080:7080"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - "-f"
+        - "http://127.0.0.1"
+      interval: 2s
+      timeout: 10s
+      retries: 10
+    networks:
+      - wordpress_network
+      - wordpress_public
+    depends_on:
+      - mysql
+    restart: always
+
+  mysql:
+    container_name: mysql
+    image: mariadb:${MARIADB_VERSION}
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - wordpress_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+      interval: 5s
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: bitnami/phpmyadmin:${PHPMYADMIN_VERSION}
+    ports:
+      - "${PHPMYADMIN_PORT}:8080"
+    environment:
+      - DATABASE_HOST=mysql
+    networks:
+      - wordpress_network
+    depends_on:
+      - mysql
+    restart: always
+
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    container_name: fail2ban
+    environment:
+      - TZ=${TZ:-UTC}
+      - F2B_LOG_TARGET=STDOUT
+      - F2B_LOG_LEVEL=INFO
+      - F2B_DB_PURGE_AGE=7d
+      - F2B_IPTABLES_CHAIN=DOCKER-USER
+      - F2B_IPTABLES_MODE=auto
+      # Configurazioni email
+      - SSMTP_HOST=${SMTP_HOST:-}
+      - SSMTP_PORT=${SMTP_PORT:-25}
+      - SSMTP_USER=${SMTP_USER:-}
+      - SSMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SSMTP_TLS=${SMTP_TLS:-NO}
+      # Configurazioni iptables
+      - F2B_IPTABLES_FORWARD=1
+      - F2B_IPTABLES_BLOCKTYPE=DROP
+      - F2B_IPTABLES_LOCKINGOPT=-w
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./config/fail2ban:/etc/fail2ban:ro
+      - fail2ban_data:/var/lib/fail2ban
+      - fail2ban_run:/var/run/fail2ban
+      - fail2ban_tmp:/tmp
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    network_mode: "host"
+    restart: always
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    privileged: true
+
+# Definizione dei networks
+networks:
+  wordpress_network:
+    driver: bridge
+    internal: true
+  wordpress_public:
+    driver: bridge
+
+volumes:
+  wordpress_data:
+  db_data:
+  php_config:
+  php_extensions:
+  wordpress_logs:
+  fail2ban_data:
+  fail2ban_run:
+  fail2ban_tmp:

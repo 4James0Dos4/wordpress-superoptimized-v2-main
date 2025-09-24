@@ -1,0 +1,63 @@
+[DEFAULT]
+bantime = 36000
+findtime = 600
+maxretry = 3
+banaction = docker-action
+action = %(banaction)s[port="%(port)s", protocol="%(protocol)s", chain="%(chain)s"]
+chain = DOCKER-USER
+protocol = tcp
+port = http,https
+backend = auto
+usedns = no
+logencoding = auto
+ignoreip = 127.0.0.1/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+bantime.increment = true
+bantime.rndtime = 86400
+bantime.multipliers = 1 5 30 60 300 720 1440 2880
+findtime.multipliers = 1 2 4 8 16 32 64 128
+maxretry.multipliers = 1 1 2 2 2 2 2 2
+
+[wordpress-auth]
+enabled = true
+filter = wordpress-auth
+logpath = /var/lib/docker/containers/*/*-json.log
+port = http,https
+maxretry = 3
+findtime = 600
+bantime = 3600
+
+[wordpress-soft]
+enabled = true
+filter = wordpress-soft
+logpath = /var/lib/docker/containers/*/*-json.log
+port = http,https
+maxretry = 6
+findtime = 600
+bantime = 1800
+
+[wordpress-extra]
+enabled = true
+filter = wordpress-extra
+logpath = /var/lib/docker/containers/*/*-json.log
+port = http,https
+maxretry = 1
+findtime = 300
+bantime = 7200
+
+[wordpress-hard]
+enabled = true
+filter = wordpress-hard
+logpath = /var/lib/docker/containers/*/*-json.log
+port = http,https
+maxretry = 1
+findtime = 300
+bantime = 86400
+
+[wordpress-aggressive]
+enabled = true
+filter = wordpress-aggressive
+logpath = /var/lib/docker/containers/*/*-json.log
+port = http,https
+maxretry = 2
+findtime = 300
+bantime = 172800

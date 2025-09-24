@@ -1,0 +1,33 @@
+; Ottimizzazioni generali
+memory_limit = ${PHP_MEMORY_LIMIT}
+max_execution_time = ${PHP_MAX_EXECUTION_TIME}
+max_input_vars = ${PHP_MAX_INPUT_VARS}
+upload_max_filesize = ${PHP_UPLOAD_MAX_FILESIZE}
+post_max_size = ${PHP_POST_MAX_SIZE}
+
+; Ottimizzazioni OPcache
+opcache.enable = 1
+opcache.memory_consumption = ${PHP_OPCACHE_MEMORY_CONSUMPTION}
+opcache.interned_strings_buffer = ${PHP_OPCACHE_INTERNED_STRINGS_BUFFER}
+opcache.max_accelerated_files = ${PHP_OPCACHE_MAX_ACCELERATED_FILES}
+opcache.revalidate_freq = ${PHP_OPCACHE_REVALIDATE_FREQ}
+opcache.fast_shutdown = 1
+opcache.enable_cli = 1
+
+; Ottimizzazioni per Relay
+relay.maxmemory = ${RELAY_MAX_MEMORY}
+relay.eviction_policy = ${RELAY_EVICTION_POLICY}
+relay.environment = production
+
+; Ottimizzazioni per WordPress
+session.save_handler = ${PHP_SESSION_SAVE_HANDLER}
+session.save_path = "${PHP_SESSION_SAVE_PATH}"
+session.use_strict_mode = 1
+session.gc_maxlifetime = ${PHP_SESSION_GC_MAXLIFETIME}
+
+# Security Headers
+header('X-Frame-Options: ${SECURITY_FRAME_OPTIONS}');
+header('X-XSS-Protection: ${SECURITY_XSS_PROTECTION}');
+header('X-Content-Type-Options: ${SECURITY_NOSNIFF}');
+header('Referrer-Policy: ${SECURITY_REFERRER_POLICY}');
+header('Permissions-Policy: ${SECURITY_PERMISSIONS_POLICY}'); 
